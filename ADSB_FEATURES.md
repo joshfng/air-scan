@@ -1,10 +1,14 @@
 # ADS-B Aircraft Tracking - 1090 MHz
 
-This document describes the ADS-B (Automatic Dependent Surveillance-Broadcast) aircraft tracking functionality added to the SDR Scanner suite.
+This document describes the ADS-B (Automatic Dependent Surveillance-Broadcast)
+aircraft tracking functionality added to the SDR Scanner suite.
 
 ## Overview
 
-ADS-B is a surveillance technology used by aircraft to broadcast their position, velocity, and other flight information. Operating at 1090 MHz, ADS-B uses Mode S transponder technology to transmit data that can be received by ground stations and other aircraft.
+ADS-B is a surveillance technology used by aircraft to broadcast their position,
+velocity, and other flight information. Operating at 1090 MHz, ADS-B uses Mode S
+transponder technology to transmit data that can be received by ground stations
+and other aircraft.
 
 ## Features
 
@@ -298,4 +302,6 @@ This tests all components without requiring hardware and provides example output
 
 ---
 
-**Note**: This implementation provides a solid foundation for ADS-B reception and decoding. For production aviation applications, consider using certified equipment and software.
+**Note**: This implementation provides a solid foundation for ADS-B reception and
+decoding. For production aviation applications, consider using certified
+equipment and software.
