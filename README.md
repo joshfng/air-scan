@@ -273,9 +273,8 @@ Debug information includes:
 
 - `test_adsb.py` - Comprehensive test suite
 
-### Documentation
+### Debug
 
-- `ADSB_FEATURES.md` - Detailed technical documentation
 - `adsb_debug.log` - Debug output log (generated during operation)
 
 ## Contributing
