@@ -23,21 +23,26 @@ import logging
 try:
     from rtlsdr import RtlSdr
 except ImportError:
-    if os.getenv('CI'):
+    if os.getenv("CI"):
         # In CI environment, create a mock RtlSdr class for testing
         print("CI environment detected - using mock RTL-SDR for testing")
+
         class RtlSdr:
             def __init__(self, device_index=0):
                 self.sample_rate = 2.0e6
                 self.center_freq = 1090e6
-                self.gain = 'auto'
+                self.gain = "auto"
 
             def read_samples(self, num_samples):
                 import numpy as np
-                return np.random.complex64(np.random.randn(num_samples) + 1j * np.random.randn(num_samples))
+
+                return np.random.complex64(
+                    np.random.randn(num_samples) + 1j * np.random.randn(num_samples)
+                )
 
             def close(self):
                 pass
+
     else:
         print("pyrtlsdr not installed. Install with: pip install pyrtlsdr")
         sys.exit(1)
