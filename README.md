@@ -1,5 +1,8 @@
 # ADS-B Aircraft Tracker
 
+[![CI](https://github.com/USERNAME/REPOSITORY/workflows/CI/badge.svg)](https://github.com/USERNAME/REPOSITORY/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Real-time aircraft tracking using 1090 MHz Mode S transponder signals with
 RTL-SDR devices.
 
