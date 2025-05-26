@@ -12,6 +12,7 @@ from rtlsdr import RtlSdr
 from scipy import signal
 from scipy.fft import fft, fftfreq
 
+
 class ADSBSignalAnalyzer:
     def __init__(self, sample_rate=2.0e6):
         self.sample_rate = sample_rate
@@ -49,7 +50,7 @@ class ADSBSignalAnalyzer:
             time.sleep(0.1)  # Allow settling
 
             # Collect samples
-            samples = self.sdr.read_samples(256*1024)
+            samples = self.sdr.read_samples(256 * 1024)
             magnitude = np.abs(samples)
 
             # Calculate statistics
@@ -58,24 +59,30 @@ class ADSBSignalAnalyzer:
             std_power = np.std(magnitude)
             dynamic_range = max_power / mean_power if mean_power > 0 else 0
 
-            results.append({
-                'gain': gain/10.0,
-                'mean': mean_power,
-                'max': max_power,
-                'std': std_power,
-                'dynamic_range': dynamic_range
-            })
+            results.append(
+                {
+                    "gain": gain / 10.0,
+                    "mean": mean_power,
+                    "max": max_power,
+                    "std": std_power,
+                    "dynamic_range": dynamic_range,
+                }
+            )
 
-            print(f"Gain {gain/10.0:4.1f} dB: mean={mean_power:.4f}, max={max_power:.4f}, "
-                  f"std={std_power:.4f}, DR={dynamic_range:.1f}")
+            print(
+                f"Gain {gain/10.0:4.1f} dB: mean={mean_power:.4f}, max={max_power:.4f}, "
+                f"std={std_power:.4f}, DR={dynamic_range:.1f}"
+            )
 
         # Find optimal gain (good dynamic range without saturation)
-        best_gain = max(results, key=lambda x: x['dynamic_range'] if x['max'] < 0.9 else 0)
+        best_gain = max(
+            results, key=lambda x: x["dynamic_range"] if x["max"] < 0.9 else 0
+        )
         print(f"\n💡 Recommended gain: {best_gain['gain']:.1f} dB")
 
         # Set to recommended gain
-        self.sdr.gain = int(best_gain['gain'] * 10)
-        return best_gain['gain']
+        self.sdr.gain = int(best_gain["gain"] * 10)
+        return best_gain["gain"]
 
     def analyze_spectrum(self, duration=10):
         """Analyze the frequency spectrum around 1090 MHz"""
@@ -87,7 +94,7 @@ class ADSBSignalAnalyzer:
         frequencies = None
 
         for i in range(duration):
-            samples = self.sdr.read_samples(1024*1024)
+            samples = self.sdr.read_samples(1024 * 1024)
 
             # Compute power spectrum
             windowed = samples * signal.windows.hann(len(samples))
@@ -96,7 +103,7 @@ class ADSBSignalAnalyzer:
             power_db = 10 * np.log10(power_linear + 1e-12)
 
             # Generate frequency array
-            freqs = fftfreq(len(samples), 1/self.sample_rate)
+            freqs = fftfreq(len(samples), 1 / self.sample_rate)
             freqs = np.fft.fftshift(freqs) + self.center_freq
             power_db = np.fft.fftshift(power_db)
 
@@ -114,11 +121,13 @@ class ADSBSignalAnalyzer:
         peaks, properties = signal.find_peaks(
             avg_spectrum,
             height=np.mean(avg_spectrum) + 10,  # 10 dB above average
-            distance=int(len(avg_spectrum) * 0.01)
+            distance=int(len(avg_spectrum) * 0.01),
         )
 
         print(f"\n📈 SPECTRUM RESULTS:")
-        print(f"   Frequency range: {frequencies[0]/1e6:.1f} - {frequencies[-1]/1e6:.1f} MHz")
+        print(
+            f"   Frequency range: {frequencies[0]/1e6:.1f} - {frequencies[-1]/1e6:.1f} MHz"
+        )
         print(f"   Average power: {np.mean(avg_spectrum):.1f} dB")
         print(f"   Peak power: {np.max(avg_spectrum):.1f} dB")
         print(f"   Signals detected: {len(peaks)}")
@@ -147,7 +156,7 @@ class ADSBSignalAnalyzer:
         start_time = time.time()
 
         while time.time() - start_time < duration:
-            samples = self.sdr.read_samples(256*1024)
+            samples = self.sdr.read_samples(256 * 1024)
             magnitude = np.abs(samples)
             sample_count += 1
 
@@ -171,7 +180,9 @@ class ADSBSignalAnalyzer:
 
             if sample_count % 30 == 0:  # Progress every ~3 seconds
                 elapsed = time.time() - start_time
-                print(f"   {elapsed:.1f}s: pulses={pulse_count}, strong_signals={strong_signals}")
+                print(
+                    f"   {elapsed:.1f}s: pulses={pulse_count}, strong_signals={strong_signals}"
+                )
 
         print(f"\n📊 ACTIVITY RESULTS:")
         print(f"   Total pulses detected: {pulse_count}")
@@ -201,14 +212,16 @@ class ADSBSignalAnalyzer:
             self.sdr.gain = gain_db * 10  # RTL-SDR uses tenths of dB
             time.sleep(0.2)
 
-            samples = self.sdr.read_samples(256*1024)
+            samples = self.sdr.read_samples(256 * 1024)
             power = np.mean(np.abs(samples))
             power_levels.append(power)
 
             print(f"   Gain {gain_db:2d} dB: Power level {power:.6f}")
 
         # Check if power increases with gain (indicates antenna connected)
-        power_increase = power_levels[-1] / power_levels[0] if power_levels[0] > 0 else 0
+        power_increase = (
+            power_levels[-1] / power_levels[0] if power_levels[0] > 0 else 0
+        )
 
         print(f"\n📊 CONNECTION ANALYSIS:")
         print(f"   Power ratio (high/low gain): {power_increase:.1f}")
@@ -218,7 +231,9 @@ class ADSBSignalAnalyzer:
         elif power_increase > 1.2:
             print("   ⚠️  Weak antenna connection or poor signal environment")
         else:
-            print("   ❌ Possible antenna connection issue (power doesn't increase with gain)")
+            print(
+                "   ❌ Possible antenna connection issue (power doesn't increase with gain)"
+            )
 
         return power_increase
 
@@ -248,7 +263,9 @@ class ADSBSignalAnalyzer:
             print("=" * 50)
 
             if antenna_ratio < 1.5:
-                print("🔧 Check antenna connection - signal doesn't increase properly with gain")
+                print(
+                    "🔧 Check antenna connection - signal doesn't increase properly with gain"
+                )
                 print("   - Ensure antenna is properly connected")
                 print("   - Check coax cable for damage")
                 print("   - Try a different antenna")
@@ -278,17 +295,24 @@ class ADSBSignalAnalyzer:
                 self.sdr.close()
             print("\n✅ Analysis completed")
 
+
 def main():
-    parser = argparse.ArgumentParser(description='ADS-B Signal Analyzer')
-    parser.add_argument('--sample-rate', type=float, default=2.0,
-                       help='Sample rate in MHz (default: 2.0)')
-    parser.add_argument('--device-index', type=int, default=0,
-                       help='RTL-SDR device index (default: 0)')
+    parser = argparse.ArgumentParser(description="ADS-B Signal Analyzer")
+    parser.add_argument(
+        "--sample-rate",
+        type=float,
+        default=2.0,
+        help="Sample rate in MHz (default: 2.0)",
+    )
+    parser.add_argument(
+        "--device-index", type=int, default=0, help="RTL-SDR device index (default: 0)"
+    )
 
     args = parser.parse_args()
 
     analyzer = ADSBSignalAnalyzer(sample_rate=args.sample_rate * 1e6)
     analyzer.run_full_analysis()
+
 
 if __name__ == "__main__":
     main()

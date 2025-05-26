@@ -7,6 +7,7 @@ import numpy as np
 from rtlsdr import RtlSdr
 import matplotlib.pyplot as plt
 
+
 def analyze_signal_levels():
     """Analyze signal levels to find optimal threshold"""
 
@@ -14,7 +15,7 @@ def analyze_signal_levels():
     sdr = RtlSdr()
     sdr.sample_rate = 2.0e6
     sdr.center_freq = 1090e6
-    sdr.gain = 'auto'
+    sdr.gain = "auto"
 
     print("Analyzing signal levels for optimal threshold...")
 
@@ -23,7 +24,7 @@ def analyze_signal_levels():
         all_magnitudes = []
 
         for i in range(10):
-            samples = sdr.read_samples(256*1024)
+            samples = sdr.read_samples(256 * 1024)
             magnitude = np.abs(samples)
             all_magnitudes.extend(magnitude)
             print(f"Collected sample {i+1}/10")
@@ -71,7 +72,7 @@ def analyze_signal_levels():
             "Mean + 5σ",
             "99th percentile",
             "99.5th percentile",
-            "99.9th percentile"
+            "99.9th percentile",
         ]
 
         for name, threshold in zip(threshold_names, test_thresholds):
@@ -110,17 +111,25 @@ def analyze_signal_levels():
         if burst_lengths:
             print(f"   Found {len(burst_lengths)} signal bursts")
             print(f"   Average burst length: {np.mean(burst_lengths):.1f} samples")
-            print(f"   Burst length range: {np.min(burst_lengths)} - {np.max(burst_lengths)} samples")
+            print(
+                f"   Burst length range: {np.min(burst_lengths)} - {np.max(burst_lengths)} samples"
+            )
 
             # Mode S messages should be ~240 samples long at 2 MHz (120 μs * 2 MHz)
             mode_s_length = 240
             tolerance = 50
 
-            mode_s_bursts = [l for l in burst_lengths if abs(l - mode_s_length) < tolerance]
-            print(f"   Potential Mode S bursts (≈{mode_s_length}±{tolerance} samples): {len(mode_s_bursts)}")
+            mode_s_bursts = [
+                l for l in burst_lengths if abs(l - mode_s_length) < tolerance
+            ]
+            print(
+                f"   Potential Mode S bursts (≈{mode_s_length}±{tolerance} samples): {len(mode_s_bursts)}"
+            )
 
             if mode_s_bursts:
-                print(f"   Mode S burst lengths: {mode_s_bursts[:10]}...")  # Show first 10
+                print(
+                    f"   Mode S burst lengths: {mode_s_bursts[:10]}..."
+                )  # Show first 10
 
         # Recommend optimal threshold
         print(f"\n💡 RECOMMENDATIONS:")
@@ -128,7 +137,9 @@ def analyze_signal_levels():
         # For Mode S, we want to catch strong pulses but avoid noise
         # Typically 99th-99.5th percentile works well
         recommended_threshold = perc_values[4]  # 99th percentile
-        print(f"   Recommended threshold: {recommended_threshold:.6f} (99th percentile)")
+        print(
+            f"   Recommended threshold: {recommended_threshold:.6f} (99th percentile)"
+        )
         print(f"   This captures {100 - 99:.1f}% of strongest signals")
 
         # Alternative: mean + 4σ (catches ~99.99% of normal distribution)
@@ -139,6 +150,7 @@ def analyze_signal_levels():
 
     finally:
         sdr.close()
+
 
 if __name__ == "__main__":
     analyze_signal_levels()

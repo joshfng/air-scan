@@ -31,6 +31,7 @@ from scipy import signal
 @dataclass
 class Aircraft:
     """Represents a tracked aircraft"""
+
     icao: str
     callsign: str = ""
     latitude: Optional[float] = None
@@ -48,6 +49,7 @@ class Aircraft:
 @dataclass
 class ADSBMessage:
     """Represents a decoded ADS-B message"""
+
     timestamp: float
     icao: str
     message_type: int
@@ -64,7 +66,7 @@ class ADSBDecoder:
         self.debug = debug
 
         if self.debug:
-            self.logger = logging.getLogger('ADSB.Decoder')
+            self.logger = logging.getLogger("ADSB.Decoder")
         else:
             self.logger = None
 
@@ -81,7 +83,7 @@ class ADSBDecoder:
             19: "Airborne Velocity",
             20: "Airborne Position (GNSS Height)",
             21: "Airborne Position (GNSS Height)",
-            22: "Airborne Position (GNSS Height)"
+            22: "Airborne Position (GNSS Height)",
         }
 
     def calculate_crc(self, data: bytes) -> int:
@@ -110,9 +112,13 @@ class ADSBDecoder:
 
         if self.debug and self.logger:
             if is_valid:
-                self.logger.debug(f"✓ CRC valid: calc={calculated_crc:06X}, recv={received_crc:06X}")
+                self.logger.debug(
+                    f"✓ CRC valid: calc={calculated_crc:06X}, recv={received_crc:06X}"
+                )
             else:
-                self.logger.debug(f"✗ CRC invalid: calc={calculated_crc:06X}, recv={received_crc:06X}")
+                self.logger.debug(
+                    f"✗ CRC invalid: calc={calculated_crc:06X}, recv={received_crc:06X}"
+                )
 
         return is_valid
 
@@ -135,7 +141,7 @@ class ADSBDecoder:
         # Extract 6-bit characters from message
         for i in range(8):
             if i < 6:
-                char_code = (data[5 + i//2] >> (4 - 4*(i%2))) & 0x3F
+                char_code = (data[5 + i // 2] >> (4 - 4 * (i % 2))) & 0x3F
                 if char_code < len(charset):
                     callsign += charset[char_code]
 
@@ -173,7 +179,9 @@ class ADSBDecoder:
 
         return lat, lon
 
-    def decode_velocity(self, data: bytes) -> Tuple[Optional[float], Optional[float], Optional[int]]:
+    def decode_velocity(
+        self, data: bytes
+    ) -> Tuple[Optional[float], Optional[float], Optional[int]]:
         """Decode velocity and heading from velocity message"""
         if len(data) < 14:
             return None, None, None
@@ -215,25 +223,22 @@ class ADSBDecoder:
         icao = self.decode_icao(data)
 
         message = ADSBMessage(
-            timestamp=time.time(),
-            icao=icao,
-            message_type=type_code,
-            raw_data=data
+            timestamp=time.time(), icao=icao, message_type=type_code, raw_data=data
         )
 
         # Decode based on message type
         if 1 <= type_code <= 4:  # Aircraft identification
-            message.decoded_data['callsign'] = self.decode_callsign(data)
+            message.decoded_data["callsign"] = self.decode_callsign(data)
         elif 9 <= type_code <= 18:  # Airborne position
-            message.decoded_data['altitude'] = self.decode_altitude(data)
+            message.decoded_data["altitude"] = self.decode_altitude(data)
             lat, lon = self.decode_position(data)
-            message.decoded_data['latitude'] = lat
-            message.decoded_data['longitude'] = lon
+            message.decoded_data["latitude"] = lat
+            message.decoded_data["longitude"] = lon
         elif type_code == 19:  # Velocity
             vel, heading, vr = self.decode_velocity(data)
-            message.decoded_data['velocity'] = vel
-            message.decoded_data['heading'] = heading
-            message.decoded_data['vertical_rate'] = vr
+            message.decoded_data["velocity"] = vel
+            message.decoded_data["heading"] = heading
+            message.decoded_data["vertical_rate"] = vr
 
         return message
 
@@ -254,16 +259,16 @@ class ADSBScanner:
         if self.debug:
             logging.basicConfig(
                 level=logging.DEBUG,
-                format='%(asctime)s - %(levelname)s - %(message)s',
+                format="%(asctime)s - %(levelname)s - %(message)s",
                 handlers=[
                     logging.StreamHandler(),
-                    logging.FileHandler('adsb_debug.log')
-                ]
+                    logging.FileHandler("adsb_debug.log"),
+                ],
             )
-            self.logger = logging.getLogger('ADSB')
+            self.logger = logging.getLogger("ADSB")
             self.logger.info("ADS-B Debug logging enabled")
         else:
-            self.logger = logging.getLogger('ADSB')
+            self.logger = logging.getLogger("ADSB")
             self.logger.setLevel(logging.WARNING)
 
         # SDR device
@@ -276,7 +281,9 @@ class ADSBScanner:
         self.messages = deque(maxlen=1000)
 
         # Signal detection parameters
-        self.preamble = np.array([1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0])  # Mode S preamble
+        self.preamble = np.array(
+            [1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0]
+        )  # Mode S preamble
         self.message_length = 112  # Mode S short message length in bits
         self.long_message_length = 224  # Mode S long message length in bits
 
@@ -285,11 +292,11 @@ class ADSBScanner:
         self.valid_messages = 0
         self.aircraft_count = 0
         self.debug_stats = {
-            'preambles_detected': 0,
-            'crc_failures': 0,
-            'decode_failures': 0,
-            'message_types': {},
-            'signal_strength_samples': []
+            "preambles_detected": 0,
+            "crc_failures": 0,
+            "decode_failures": 0,
+            "message_types": {},
+            "signal_strength_samples": [],
         }
 
         # Plotting
@@ -297,7 +304,7 @@ class ADSBScanner:
         self.ax_map = None
         self.ax_stats = None
 
-    def connect_sdr(self, device_index=0, gain='auto'):
+    def connect_sdr(self, device_index=0, gain="auto"):
         """Connect to RTL-SDR device"""
         try:
             self.sdr = RtlSdr(device_index)
@@ -307,7 +314,7 @@ class ADSBScanner:
             print(f"Connected to SDR device {device_index}")
             print(f"Sample rate: {self.sample_rate/1e6:.1f} MHz")
             print(f"Center frequency: {self.center_freq/1e6:.1f} MHz")
-            if gain == 'auto':
+            if gain == "auto":
                 print(f"Gain: Automatic")
             else:
                 print(f"Gain: {self.sdr.gain} dB")
@@ -332,11 +339,13 @@ class ADSBScanner:
         threshold = np.percentile(magnitude, 99.0)
 
         if self.debug:
-            self.logger.debug(f"Signal analysis: mean={np.mean(magnitude):.3f}, "
-                            f"std={np.std(magnitude):.3f}, threshold={threshold:.3f}")
-            self.debug_stats['signal_strength_samples'].append(np.mean(magnitude))
-            if len(self.debug_stats['signal_strength_samples']) > 100:
-                self.debug_stats['signal_strength_samples'].pop(0)
+            self.logger.debug(
+                f"Signal analysis: mean={np.mean(magnitude):.3f}, "
+                f"std={np.std(magnitude):.3f}, threshold={threshold:.3f}"
+            )
+            self.debug_stats["signal_strength_samples"].append(np.mean(magnitude))
+            if len(self.debug_stats["signal_strength_samples"]) > 100:
+                self.debug_stats["signal_strength_samples"].pop(0)
 
         # Mode S preamble: 1010000010100000 (16 bits at 1 MHz = 16 μs)
         # At 2 MHz sampling: 32 samples for preamble
@@ -348,7 +357,6 @@ class ADSBScanner:
         # Simple pattern matching - look for the preamble pattern
         for i in range(len(magnitude) - 32):
             if magnitude[i] > threshold:  # Potential start of preamble
-
                 # Check preamble pattern
                 valid_preamble = True
                 confidence = 0
@@ -358,7 +366,9 @@ class ADSBScanner:
 
                     if sample_idx + 1 < len(magnitude):
                         # Average the samples for this bit
-                        bit_samples = magnitude[sample_idx:sample_idx + samples_per_bit]
+                        bit_samples = magnitude[
+                            sample_idx : sample_idx + samples_per_bit
+                        ]
                         bit_value = 1 if np.mean(bit_samples) > threshold else 0
 
                         if bit_value == expected_bit:
@@ -376,23 +386,29 @@ class ADSBScanner:
                     preamble_locations.append(message_start)
 
                     if self.debug:
-                        self.logger.debug(f"Preamble found at sample {i}, "
-                                        f"confidence: {confidence}/{len(preamble_bits)}, "
-                                        f"message starts at: {message_start}")
+                        self.logger.debug(
+                            f"Preamble found at sample {i}, "
+                            f"confidence: {confidence}/{len(preamble_bits)}, "
+                            f"message starts at: {message_start}"
+                        )
 
                     # Skip ahead to avoid detecting overlapping preambles
                     break  # Process one preamble at a time for better accuracy
 
         if self.debug and preamble_locations:
-            self.debug_stats['preambles_detected'] += len(preamble_locations)
-            self.logger.debug(f"Found {len(preamble_locations)} preambles in this batch")
+            self.debug_stats["preambles_detected"] += len(preamble_locations)
+            self.logger.debug(
+                f"Found {len(preamble_locations)} preambles in this batch"
+            )
 
         return preamble_locations
 
     def extract_message_bits(self, samples, start_idx, message_bits=112):
         """Extract message bits from samples using improved bit recovery"""
         bits = []
-        samples_per_bit = self.sample_rate / 1e6  # 1 MHz bit rate (use float for precision)
+        samples_per_bit = (
+            self.sample_rate / 1e6
+        )  # 1 MHz bit rate (use float for precision)
 
         magnitude = np.abs(samples)
 
@@ -400,8 +416,10 @@ class ADSBScanner:
         threshold = np.percentile(magnitude, 99.0)  # Use 99th percentile as threshold
 
         if self.debug:
-            self.logger.debug(f"Bit extraction: start_idx={start_idx}, "
-                            f"samples_per_bit={samples_per_bit:.1f}, threshold={threshold:.3f}")
+            self.logger.debug(
+                f"Bit extraction: start_idx={start_idx}, "
+                f"samples_per_bit={samples_per_bit:.1f}, threshold={threshold:.3f}"
+            )
 
         for i in range(message_bits):
             # Sample at multiple points within each bit period and take the maximum
@@ -412,7 +430,7 @@ class ADSBScanner:
             sample_points = [
                 int(bit_start + 0.25 * samples_per_bit),
                 int(bit_start + 0.5 * samples_per_bit),
-                int(bit_start + 0.75 * samples_per_bit)
+                int(bit_start + 0.75 * samples_per_bit),
             ]
 
             # Take the maximum value within the bit period
@@ -423,14 +441,16 @@ class ADSBScanner:
 
             if not bit_values:
                 if self.debug:
-                    self.logger.debug(f"Bit extraction truncated at bit {i}/{message_bits}")
+                    self.logger.debug(
+                        f"Bit extraction truncated at bit {i}/{message_bits}"
+                    )
                 break
 
             bit_value = max(bit_values)
             bits.append(1 if bit_value > threshold else 0)
 
         if self.debug and len(bits) > 0:
-            bit_string = ''.join(str(b) for b in bits[:32])  # First 32 bits for debug
+            bit_string = "".join(str(b) for b in bits[:32])  # First 32 bits for debug
             self.logger.debug(f"Extracted {len(bits)} bits, first 32: {bit_string}")
 
         return bits
@@ -457,7 +477,7 @@ class ADSBScanner:
 
         # Check downlink format (first 5 bits)
         df_bits = bits[:5]
-        df_value = sum(bit * (2**(4-i)) for i, bit in enumerate(df_bits))
+        df_value = sum(bit * (2 ** (4 - i)) for i, bit in enumerate(df_bits))
 
         if self.debug:
             self.logger.debug(f"DF: {df_value}")
@@ -479,7 +499,7 @@ class ADSBScanner:
         # For DF=17/18, check capability field (bits 5-7)
         if df_value in [17, 18]:
             ca_bits = bits[5:8]
-            ca_value = sum(bit * (2**(2-i)) for i, bit in enumerate(ca_bits))
+            ca_value = sum(bit * (2 ** (2 - i)) for i, bit in enumerate(ca_bits))
 
             if ca_value > 7:  # CA field is 3 bits, max value 7
                 if self.debug:
@@ -501,15 +521,17 @@ class ADSBScanner:
                 # Validate message structure before attempting decode
                 if not self.validate_message_structure(bits):
                     if self.debug:
-                        self.debug_stats['decode_failures'] += 1
+                        self.debug_stats["decode_failures"] += 1
                         self.logger.debug("✗ Message structure validation failed")
                     continue
 
                 message_bytes = self.bits_to_bytes(bits)
                 if message_bytes:
                     if self.debug:
-                        hex_data = ' '.join(f'{b:02X}' for b in message_bytes)
-                        self.logger.debug(f"Attempting to decode 112-bit message: {hex_data}")
+                        hex_data = " ".join(f"{b:02X}" for b in message_bytes)
+                        self.logger.debug(
+                            f"Attempting to decode 112-bit message: {hex_data}"
+                        )
 
                     message = self.decoder.decode_message(message_bytes)
                     if message:
@@ -518,17 +540,22 @@ class ADSBScanner:
                         self.update_aircraft(message)
 
                         if self.debug:
-                            self.logger.debug(f"✓ Successfully decoded message from {message.icao}, "
-                                            f"type {message.message_type}: {message.decoded_data}")
+                            self.logger.debug(
+                                f"✓ Successfully decoded message from {message.icao}, "
+                                f"type {message.message_type}: {message.decoded_data}"
+                            )
                             msg_type = message.message_type
-                            self.debug_stats['message_types'][msg_type] = \
-                                self.debug_stats['message_types'].get(msg_type, 0) + 1
+                            self.debug_stats["message_types"][msg_type] = (
+                                self.debug_stats["message_types"].get(msg_type, 0) + 1
+                            )
                         continue
                     else:
                         if self.debug:
-                            self.debug_stats['decode_failures'] += 1
-                            self.debug_stats['crc_failures'] += 1
-                            self.logger.debug("✗ Message decode failed (CRC or format error)")
+                            self.debug_stats["decode_failures"] += 1
+                            self.debug_stats["crc_failures"] += 1
+                            self.logger.debug(
+                                "✗ Message decode failed (CRC or format error)"
+                            )
 
             # Try long message (224 bits)
             bits = self.extract_message_bits(samples, location, 224)
@@ -536,8 +563,10 @@ class ADSBScanner:
                 message_bytes = self.bits_to_bytes(bits)
                 if message_bytes:
                     if self.debug:
-                        hex_data = ' '.join(f'{b:02X}' for b in message_bytes)
-                        self.logger.debug(f"Attempting to decode 224-bit message: {hex_data}")
+                        hex_data = " ".join(f"{b:02X}" for b in message_bytes)
+                        self.logger.debug(
+                            f"Attempting to decode 224-bit message: {hex_data}"
+                        )
 
                     message = self.decoder.decode_message(message_bytes)
                     if message:
@@ -546,16 +575,21 @@ class ADSBScanner:
                         self.update_aircraft(message)
 
                         if self.debug:
-                            self.logger.debug(f"✓ Successfully decoded long message from {message.icao}, "
-                                            f"type {message.message_type}: {message.decoded_data}")
+                            self.logger.debug(
+                                f"✓ Successfully decoded long message from {message.icao}, "
+                                f"type {message.message_type}: {message.decoded_data}"
+                            )
                             msg_type = message.message_type
-                            self.debug_stats['message_types'][msg_type] = \
-                                self.debug_stats['message_types'].get(msg_type, 0) + 1
+                            self.debug_stats["message_types"][msg_type] = (
+                                self.debug_stats["message_types"].get(msg_type, 0) + 1
+                            )
                     else:
                         if self.debug:
-                            self.debug_stats['decode_failures'] += 1
-                            self.debug_stats['crc_failures'] += 1
-                            self.logger.debug("✗ Long message decode failed (CRC or format error)")
+                            self.debug_stats["decode_failures"] += 1
+                            self.debug_stats["crc_failures"] += 1
+                            self.logger.debug(
+                                "✗ Long message decode failed (CRC or format error)"
+                            )
 
     def update_aircraft(self, message: ADSBMessage):
         """Update aircraft database with new message"""
@@ -576,41 +610,43 @@ class ADSBScanner:
         updates = []
 
         # Update aircraft data based on message content
-        if 'callsign' in message.decoded_data:
+        if "callsign" in message.decoded_data:
             old_callsign = aircraft.callsign
-            aircraft.callsign = message.decoded_data['callsign']
+            aircraft.callsign = message.decoded_data["callsign"]
             if old_callsign != aircraft.callsign:
                 updates.append(f"callsign: {aircraft.callsign}")
 
-        if 'altitude' in message.decoded_data:
+        if "altitude" in message.decoded_data:
             old_altitude = aircraft.altitude
-            aircraft.altitude = message.decoded_data['altitude']
+            aircraft.altitude = message.decoded_data["altitude"]
             if old_altitude != aircraft.altitude:
                 updates.append(f"altitude: {aircraft.altitude}ft")
 
-        if 'latitude' in message.decoded_data and 'longitude' in message.decoded_data:
+        if "latitude" in message.decoded_data and "longitude" in message.decoded_data:
             old_lat, old_lon = aircraft.latitude, aircraft.longitude
-            aircraft.latitude = message.decoded_data['latitude']
-            aircraft.longitude = message.decoded_data['longitude']
+            aircraft.latitude = message.decoded_data["latitude"]
+            aircraft.longitude = message.decoded_data["longitude"]
             aircraft.position_messages += 1
             if old_lat != aircraft.latitude or old_lon != aircraft.longitude:
-                updates.append(f"position: ({aircraft.latitude:.4f}, {aircraft.longitude:.4f})")
+                updates.append(
+                    f"position: ({aircraft.latitude:.4f}, {aircraft.longitude:.4f})"
+                )
 
-        if 'velocity' in message.decoded_data:
+        if "velocity" in message.decoded_data:
             old_velocity = aircraft.velocity
-            aircraft.velocity = message.decoded_data['velocity']
+            aircraft.velocity = message.decoded_data["velocity"]
             if old_velocity != aircraft.velocity:
                 updates.append(f"velocity: {aircraft.velocity:.0f}kt")
 
-        if 'heading' in message.decoded_data:
+        if "heading" in message.decoded_data:
             old_heading = aircraft.heading
-            aircraft.heading = message.decoded_data['heading']
+            aircraft.heading = message.decoded_data["heading"]
             if old_heading != aircraft.heading:
                 updates.append(f"heading: {aircraft.heading:.0f}°")
 
-        if 'vertical_rate' in message.decoded_data:
+        if "vertical_rate" in message.decoded_data:
             old_vr = aircraft.vertical_rate
-            aircraft.vertical_rate = message.decoded_data['vertical_rate']
+            aircraft.vertical_rate = message.decoded_data["vertical_rate"]
             if old_vr != aircraft.vertical_rate:
                 updates.append(f"vertical_rate: {aircraft.vertical_rate}fpm")
 
@@ -638,7 +674,7 @@ class ADSBScanner:
         while self.scanning:
             try:
                 # Collect samples
-                samples = self.sdr.read_samples(256*1024)
+                samples = self.sdr.read_samples(256 * 1024)
 
                 # Process for ADS-B messages
                 self.process_samples(samples)
@@ -650,8 +686,10 @@ class ADSBScanner:
                 # Print statistics every 5000 messages
                 if self.total_messages % 5000 == 0 and self.total_messages > 0:
                     success_rate = (self.valid_messages / self.total_messages) * 100
-                    print(f"Messages: {self.total_messages}, Valid: {self.valid_messages} "
-                          f"({success_rate:.1f}%), Aircraft: {len(self.aircraft)}")
+                    print(
+                        f"Messages: {self.total_messages}, Valid: {self.valid_messages} "
+                        f"({success_rate:.1f}%), Aircraft: {len(self.aircraft)}"
+                    )
 
                     if self.debug:
                         self.print_debug_stats()
@@ -664,19 +702,19 @@ class ADSBScanner:
 
     def setup_plot(self):
         """Setup real-time plotting"""
-        plt.style.use('dark_background')
+        plt.style.use("dark_background")
         self.fig, (self.ax_map, self.ax_stats) = plt.subplots(1, 2, figsize=(16, 8))
 
         # Map plot
-        self.ax_map.set_title('Aircraft Positions', fontsize=14, fontweight='bold')
-        self.ax_map.set_xlabel('Longitude')
-        self.ax_map.set_ylabel('Latitude')
+        self.ax_map.set_title("Aircraft Positions", fontsize=14, fontweight="bold")
+        self.ax_map.set_xlabel("Longitude")
+        self.ax_map.set_ylabel("Latitude")
         self.ax_map.grid(True, alpha=0.3)
-        self.ax_map.set_facecolor('black')
+        self.ax_map.set_facecolor("black")
 
         # Statistics plot
-        self.ax_stats.set_title('ADS-B Statistics', fontsize=14, fontweight='bold')
-        self.ax_stats.set_facecolor('black')
+        self.ax_stats.set_title("ADS-B Statistics", fontsize=14, fontweight="bold")
+        self.ax_stats.set_facecolor("black")
 
         plt.tight_layout()
 
@@ -685,9 +723,9 @@ class ADSBScanner:
         ax_stop = plt.axes([0.25, 0.02, 0.1, 0.04])
         ax_clear = plt.axes([0.4, 0.02, 0.1, 0.04])
 
-        self.btn_start = Button(ax_start, 'Start')
-        self.btn_stop = Button(ax_stop, 'Stop')
-        self.btn_clear = Button(ax_clear, 'Clear')
+        self.btn_start = Button(ax_start, "Start")
+        self.btn_stop = Button(ax_stop, "Stop")
+        self.btn_clear = Button(ax_clear, "Clear")
 
         self.btn_start.on_clicked(self.start_scanning)
         self.btn_stop.on_clicked(self.stop_scanning)
@@ -732,25 +770,34 @@ class ADSBScanner:
 
                 if aircraft.latitude is not None and aircraft.longitude is not None:
                     # Plot aircraft position
-                    self.ax_map.scatter(aircraft.longitude, aircraft.latitude,
-                                      c='red', s=50, alpha=0.8)
+                    self.ax_map.scatter(
+                        aircraft.longitude, aircraft.latitude, c="red", s=50, alpha=0.8
+                    )
 
                     # Add aircraft label
                     label = aircraft.callsign if aircraft.callsign else aircraft.icao
                     if aircraft.altitude:
                         label += f"\n{aircraft.altitude}ft"
 
-                    self.ax_map.annotate(label, (aircraft.longitude, aircraft.latitude),
-                                       xytext=(5, 5), textcoords='offset points',
-                                       fontsize=8, color='yellow')
+                    self.ax_map.annotate(
+                        label,
+                        (aircraft.longitude, aircraft.latitude),
+                        xytext=(5, 5),
+                        textcoords="offset points",
+                        fontsize=8,
+                        color="yellow",
+                    )
 
         # Update map
-        self.ax_map.set_title(f'Aircraft Positions ({len(active_aircraft)} active)',
-                             fontsize=14, fontweight='bold')
-        self.ax_map.set_xlabel('Longitude')
-        self.ax_map.set_ylabel('Latitude')
+        self.ax_map.set_title(
+            f"Aircraft Positions ({len(active_aircraft)} active)",
+            fontsize=14,
+            fontweight="bold",
+        )
+        self.ax_map.set_xlabel("Longitude")
+        self.ax_map.set_ylabel("Latitude")
         self.ax_map.grid(True, alpha=0.3)
-        self.ax_map.set_facecolor('black')
+        self.ax_map.set_facecolor("black")
 
         # Update statistics
         stats_text = f"Total Messages: {self.total_messages}\n"
@@ -763,7 +810,9 @@ class ADSBScanner:
 
         # Add aircraft details
         stats_text += "Recent Aircraft:\n"
-        for aircraft in sorted(active_aircraft, key=lambda x: x.last_seen, reverse=True)[:10]:
+        for aircraft in sorted(
+            active_aircraft, key=lambda x: x.last_seen, reverse=True
+        )[:10]:
             age = current_time - aircraft.last_seen
             callsign = aircraft.callsign if aircraft.callsign else "Unknown"
             stats_text += f"{aircraft.icao}: {callsign} ({age:.0f}s ago)\n"
@@ -775,11 +824,18 @@ class ADSBScanner:
                 stats_text += f"  Hdg: {aircraft.heading:.0f}°"
             stats_text += "\n"
 
-        self.ax_stats.text(0.05, 0.95, stats_text, transform=self.ax_stats.transAxes,
-                          fontsize=10, verticalalignment='top', color='white',
-                          fontfamily='monospace')
-        self.ax_stats.set_title('ADS-B Statistics', fontsize=14, fontweight='bold')
-        self.ax_stats.set_facecolor('black')
+        self.ax_stats.text(
+            0.05,
+            0.95,
+            stats_text,
+            transform=self.ax_stats.transAxes,
+            fontsize=10,
+            verticalalignment="top",
+            color="white",
+            fontfamily="monospace",
+        )
+        self.ax_stats.set_title("ADS-B Statistics", fontsize=14, fontweight="bold")
+        self.ax_stats.set_facecolor("black")
         self.ax_stats.set_xticks([])
         self.ax_stats.set_yticks([])
 
@@ -789,18 +845,22 @@ class ADSBScanner:
             return
 
         self.logger.info("=== DEBUG STATISTICS ===")
-        self.logger.info(f"Preambles detected: {self.debug_stats['preambles_detected']}")
+        self.logger.info(
+            f"Preambles detected: {self.debug_stats['preambles_detected']}"
+        )
         self.logger.info(f"CRC failures: {self.debug_stats['crc_failures']}")
         self.logger.info(f"Decode failures: {self.debug_stats['decode_failures']}")
 
-        if self.debug_stats['message_types']:
+        if self.debug_stats["message_types"]:
             self.logger.info("Message types received:")
-            for msg_type, count in sorted(self.debug_stats['message_types'].items()):
-                type_name = self.decoder.message_types.get(msg_type, f"Unknown({msg_type})")
+            for msg_type, count in sorted(self.debug_stats["message_types"].items()):
+                type_name = self.decoder.message_types.get(
+                    msg_type, f"Unknown({msg_type})"
+                )
                 self.logger.info(f"  Type {msg_type}: {count} messages ({type_name})")
 
-        if self.debug_stats['signal_strength_samples']:
-            avg_signal = np.mean(self.debug_stats['signal_strength_samples'])
+        if self.debug_stats["signal_strength_samples"]:
+            avg_signal = np.mean(self.debug_stats["signal_strength_samples"])
             self.logger.info(f"Average signal strength: {avg_signal:.3f}")
 
         self.logger.info("========================")
@@ -811,16 +871,19 @@ class ADSBScanner:
             print("\nNo aircraft tracked")
             return
 
-        print("\n" + "="*100)
+        print("\n" + "=" * 100)
         print("TRACKED AIRCRAFT")
-        print("="*100)
-        print(f"{'ICAO':<8} {'Callsign':<10} {'Lat':<10} {'Lon':<11} {'Alt(ft)':<8} "
-              f"{'Spd(kt)':<8} {'Hdg':<6} {'Msgs':<6} {'Age(s)':<8}")
-        print("-"*100)
+        print("=" * 100)
+        print(
+            f"{'ICAO':<8} {'Callsign':<10} {'Lat':<10} {'Lon':<11} {'Alt(ft)':<8} "
+            f"{'Spd(kt)':<8} {'Hdg':<6} {'Msgs':<6} {'Age(s)':<8}"
+        )
+        print("-" * 100)
 
         current_time = time.time()
-        sorted_aircraft = sorted(self.aircraft.values(),
-                               key=lambda x: x.last_seen, reverse=True)
+        sorted_aircraft = sorted(
+            self.aircraft.values(), key=lambda x: x.last_seen, reverse=True
+        )
 
         for aircraft in sorted_aircraft[:20]:  # Show top 20
             age = current_time - aircraft.last_seen
@@ -831,12 +894,14 @@ class ADSBScanner:
             spd = f"{aircraft.velocity:.0f}" if aircraft.velocity else "Unknown"
             hdg = f"{aircraft.heading:.0f}°" if aircraft.heading else "Unknown"
 
-            print(f"{aircraft.icao:<8} {callsign:<10} {lat:<10} {lon:<11} {alt:<8} "
-                  f"{spd:<8} {hdg:<6} {aircraft.message_count:<6} {age:<8.0f}")
+            print(
+                f"{aircraft.icao:<8} {callsign:<10} {lat:<10} {lon:<11} {alt:<8} "
+                f"{spd:<8} {hdg:<6} {aircraft.message_count:<6} {age:<8.0f}"
+            )
 
     def run(self):
         """Main run function"""
-        gain = getattr(self, 'gain', 'auto')  # Default to auto if not set
+        gain = getattr(self, "gain", "auto")  # Default to auto if not set
         if not self.connect_sdr(gain=gain):
             return
 
@@ -845,8 +910,13 @@ class ADSBScanner:
             self.setup_plot()
 
             # Start animation
-            ani = animation.FuncAnimation(self.fig, self.update_plot,
-                                        interval=2000, blit=False, cache_frame_data=False)
+            ani = animation.FuncAnimation(
+                self.fig,
+                self.update_plot,
+                interval=2000,
+                blit=False,
+                cache_frame_data=False,
+            )
 
             # Print aircraft table periodically
             def print_table():
@@ -873,15 +943,29 @@ class ADSBScanner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='ADS-B Aircraft Tracker - 1090 MHz Mode S decoder')
-    parser.add_argument('--sample-rate', type=float, default=2.0,
-                       help='Sample rate in MHz (default: 2.0)')
-    parser.add_argument('--device-index', type=int, default=0,
-                       help='RTL-SDR device index (default: 0)')
-    parser.add_argument('--debug', action='store_true',
-                       help='Enable debug logging of messages and decoding')
-    parser.add_argument('--gain', type=str, default='auto',
-                       help='SDR gain in dB or "auto" for automatic (default: auto)')
+    parser = argparse.ArgumentParser(
+        description="ADS-B Aircraft Tracker - 1090 MHz Mode S decoder"
+    )
+    parser.add_argument(
+        "--sample-rate",
+        type=float,
+        default=2.0,
+        help="Sample rate in MHz (default: 2.0)",
+    )
+    parser.add_argument(
+        "--device-index", type=int, default=0, help="RTL-SDR device index (default: 0)"
+    )
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        help="Enable debug logging of messages and decoding",
+    )
+    parser.add_argument(
+        "--gain",
+        type=str,
+        default="auto",
+        help='SDR gain in dB or "auto" for automatic (default: auto)',
+    )
 
     args = parser.parse_args()
 
@@ -892,18 +976,22 @@ def main():
     scanner = ADSBScanner(sample_rate=sample_rate, debug=args.debug)
 
     # Handle gain setting
-    if args.gain == 'auto':
-        scanner.gain = 'auto'
+    if args.gain == "auto":
+        scanner.gain = "auto"
     else:
         try:
             scanner.gain = float(args.gain)
         except ValueError:
             print(f"Invalid gain value: {args.gain}. Using automatic gain.")
-            scanner.gain = 'auto'
+            scanner.gain = "auto"
 
     if args.debug:
-        print("🐛 Debug mode enabled - detailed logging will be saved to 'adsb_debug.log'")
-        print("   Watch the console and log file for detailed message decoding information")
+        print(
+            "🐛 Debug mode enabled - detailed logging will be saved to 'adsb_debug.log'"
+        )
+        print(
+            "   Watch the console and log file for detailed message decoding information"
+        )
 
     scanner.run()
 

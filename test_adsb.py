@@ -17,8 +17,24 @@ def test_adsb_decoder():
     decoder = ADSBDecoder()
 
     # Test CRC calculation
-    test_message = bytes([0x8D, 0x40, 0x62, 0x1D, 0x58, 0xC3, 0x82, 0xD6,
-                         0x90, 0xC8, 0xAC, 0x28, 0x63, 0xA7])
+    test_message = bytes(
+        [
+            0x8D,
+            0x40,
+            0x62,
+            0x1D,
+            0x58,
+            0xC3,
+            0x82,
+            0xD6,
+            0x90,
+            0xC8,
+            0xAC,
+            0x28,
+            0x63,
+            0xA7,
+        ]
+    )
 
     print("1. Testing CRC verification...")
     is_valid = decoder.verify_message(test_message)
@@ -58,22 +74,26 @@ def test_aircraft_tracking():
             icao="40621D",
             message_type=1,
             raw_data=b"",
-            decoded_data={'callsign': 'UAL123'}
+            decoded_data={"callsign": "UAL123"},
         ),
         ADSBMessage(
             timestamp=time.time(),
             icao="40621D",
             message_type=11,
             raw_data=b"",
-            decoded_data={'altitude': 35000, 'latitude': 37.7749, 'longitude': -122.4194}
+            decoded_data={
+                "altitude": 35000,
+                "latitude": 37.7749,
+                "longitude": -122.4194,
+            },
         ),
         ADSBMessage(
             timestamp=time.time(),
             icao="40621D",
             message_type=19,
             raw_data=b"",
-            decoded_data={'velocity': 450, 'heading': 270, 'vertical_rate': 0}
-        )
+            decoded_data={"velocity": 450, "heading": 270, "vertical_rate": 0},
+        ),
     ]
 
     # Create scanner and update aircraft
@@ -84,8 +104,10 @@ def test_aircraft_tracking():
         scanner.update_aircraft(message)
         aircraft = scanner.aircraft[message.icao]
         print(f"   Message {i+1}: {message.decoded_data}")
-        print(f"   Aircraft state: Callsign={aircraft.callsign}, "
-              f"Alt={aircraft.altitude}, Pos=({aircraft.latitude}, {aircraft.longitude})")
+        print(
+            f"   Aircraft state: Callsign={aircraft.callsign}, "
+            f"Alt={aircraft.altitude}, Pos=({aircraft.latitude}, {aircraft.longitude})"
+        )
 
     print(f"\n3. Final aircraft state:")
     aircraft = scanner.aircraft["40621D"]
@@ -214,6 +236,7 @@ def main():
     except Exception as e:
         print(f"\n❌ Test failed with error: {e}")
         import traceback
+
         traceback.print_exc()
 
 

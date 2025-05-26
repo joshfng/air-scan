@@ -7,6 +7,7 @@ import numpy as np
 from rtlsdr import RtlSdr
 import time
 
+
 def calculate_crc(data: bytes) -> int:
     """Calculate CRC-24 for Mode S messages"""
     # CRC polynomial for Mode S: 0x1FFF409 (CRC-24)
@@ -24,6 +25,7 @@ def calculate_crc(data: bytes) -> int:
 
     return crc
 
+
 def bits_to_bytes(bits):
     """Convert bit array to bytes"""
     if len(bits) % 8 != 0:
@@ -39,6 +41,7 @@ def bits_to_bytes(bits):
 
     return bytes(bytes_data)
 
+
 def test_bit_inversion():
     """Test if bit inversion helps with CRC"""
 
@@ -46,7 +49,7 @@ def test_bit_inversion():
     sdr = RtlSdr()
     sdr.sample_rate = 2.0e6
     sdr.center_freq = 1090e6
-    sdr.gain = 'auto'
+    sdr.gain = "auto"
 
     print("Testing bit inversion for CRC fixes...")
     print("Looking for messages with valid CRC after inversion...")
@@ -54,7 +57,7 @@ def test_bit_inversion():
     try:
         for test_num in range(20):
             # Get samples
-            samples = sdr.read_samples(256*1024)
+            samples = sdr.read_samples(256 * 1024)
             magnitude = np.abs(samples)
 
             # Simple threshold
@@ -94,10 +97,10 @@ def test_bit_inversion():
                         message_bytes = bits_to_bytes(bits)
                         if message_bytes:
                             calc_crc = calculate_crc(message_bytes)
-                            recv_crc = int.from_bytes(message_bytes[-3:], 'big')
+                            recv_crc = int.from_bytes(message_bytes[-3:], "big")
 
                             if calc_crc == recv_crc:
-                                hex_data = ' '.join(f'{b:02X}' for b in message_bytes)
+                                hex_data = " ".join(f"{b:02X}" for b in message_bytes)
                                 print(f"✅ NORMAL BITS VALID CRC: {hex_data}")
                                 print(f"   CRC: {calc_crc:06X}")
                                 return True
@@ -107,19 +110,21 @@ def test_bit_inversion():
                         message_bytes = bits_to_bytes(inverted_bits)
                         if message_bytes:
                             calc_crc = calculate_crc(message_bytes)
-                            recv_crc = int.from_bytes(message_bytes[-3:], 'big')
+                            recv_crc = int.from_bytes(message_bytes[-3:], "big")
 
                             if calc_crc == recv_crc:
-                                hex_data = ' '.join(f'{b:02X}' for b in message_bytes)
+                                hex_data = " ".join(f"{b:02X}" for b in message_bytes)
                                 print(f"✅ INVERTED BITS VALID CRC: {hex_data}")
                                 print(f"   CRC: {calc_crc:06X}")
                                 return True
 
                             # Show some examples for debugging
                             if test_num < 3:
-                                hex_data = ' '.join(f'{b:02X}' for b in message_bytes)
+                                hex_data = " ".join(f"{b:02X}" for b in message_bytes)
                                 print(f"❌ Test {test_num}: {hex_data}")
-                                print(f"   Calc CRC: {calc_crc:06X}, Recv CRC: {recv_crc:06X}")
+                                print(
+                                    f"   Calc CRC: {calc_crc:06X}, Recv CRC: {recv_crc:06X}"
+                                )
 
             print(f"Test {test_num + 1}/20 completed")
             time.sleep(0.1)
@@ -129,6 +134,7 @@ def test_bit_inversion():
 
     print("No valid CRC found with normal or inverted bits")
     return False
+
 
 if __name__ == "__main__":
     test_bit_inversion()

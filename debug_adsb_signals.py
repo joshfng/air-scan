@@ -9,14 +9,24 @@ import time
 import argparse
 from adsb_scanner import ADSBScanner
 
+
 def main():
-    parser = argparse.ArgumentParser(description='Debug ADS-B Signal Processing')
-    parser.add_argument('--sample-rate', type=float, default=2.0,
-                       help='Sample rate in MHz (default: 2.0)')
-    parser.add_argument('--device-index', type=int, default=0,
-                       help='RTL-SDR device index (default: 0)')
-    parser.add_argument('--duration', type=int, default=30,
-                       help='Duration to run in seconds (default: 30)')
+    parser = argparse.ArgumentParser(description="Debug ADS-B Signal Processing")
+    parser.add_argument(
+        "--sample-rate",
+        type=float,
+        default=2.0,
+        help="Sample rate in MHz (default: 2.0)",
+    )
+    parser.add_argument(
+        "--device-index", type=int, default=0, help="RTL-SDR device index (default: 0)"
+    )
+    parser.add_argument(
+        "--duration",
+        type=int,
+        default=30,
+        help="Duration to run in seconds (default: 30)",
+    )
 
     args = parser.parse_args()
 
@@ -45,7 +55,7 @@ def main():
     try:
         while time.time() - start_time < args.duration:
             # Collect samples
-            samples = scanner.sdr.read_samples(256*1024)
+            samples = scanner.sdr.read_samples(256 * 1024)
             sample_count += 1
 
             # Process samples
@@ -58,7 +68,9 @@ def main():
                 print(f"   Total messages: {scanner.total_messages}")
                 print(f"   Valid messages: {scanner.valid_messages}")
                 if scanner.total_messages > 0:
-                    success_rate = (scanner.valid_messages / scanner.total_messages) * 100
+                    success_rate = (
+                        scanner.valid_messages / scanner.total_messages
+                    ) * 100
                     print(f"   Success rate: {success_rate:.1f}%")
                 print(f"   Aircraft detected: {len(scanner.aircraft)}")
                 print()
@@ -98,6 +110,7 @@ def main():
 
         scanner.disconnect_sdr()
         print("\n✅ Debug session completed")
+
 
 if __name__ == "__main__":
     main()
