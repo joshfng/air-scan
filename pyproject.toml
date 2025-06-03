@@ -17,7 +17,7 @@ setuptools = "^80.8.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.4.0"
 black = "^24.3.0"
-flake8 = "^6.0.0"
+flake8 = "^7.2.0"
 
 # Scripts are not available in package-mode = false
 # Use: poetry run python adsb_scanner.py instead
