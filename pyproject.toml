@@ -15,7 +15,7 @@ scipy = "^1.7.0"
 setuptools = "^80.8.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.0.0"
+pytest = "^8.4.0"
 black = "^24.3.0"
 flake8 = "^6.0.0"
 
