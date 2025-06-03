@@ -713,15 +713,18 @@ diagrams = ["jinja2", "railroad-diagrams"]
 
 [[package]]
 name = "pyrtlsdr"
-version = "0.2.93"
+version = "0.3.0"
 description = "A Python wrapper for librtlsdr (a driver for Realtek RTL2832U based SDR's)"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "pyrtlsdr-0.2.93-py2.py3-none-any.whl", hash = "sha256:9a35999876092af963869b499e6094555626c0c3bab45308643f9411495e8cc7"},
-    {file = "pyrtlsdr-0.2.93.tar.gz", hash = "sha256:2de29bb4e4037088a78e89012bc2cc84b73dc45c60608b28b7d903f62923ba26"},
+    {file = "pyrtlsdr-0.3.0-py2.py3-none-any.whl", hash = "sha256:4967df42eb89e6bd70602337ae355c9b1231eb1d517fd8cc30f7b862fd1392f6"},
+    {file = "pyrtlsdr-0.3.0.tar.gz", hash = "sha256:fb3e583ba073b861e8e0bc5e62f66f07365e9147f5d36491de4ad62f23e45362"},
 ]
+
+[package.extras]
+lib = ["pyrtlsdrlib"]
 
 [[package]]
 name = "pytest"
@@ -918,4 +921,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "f0eab0a635379717dc79d885dad813fca909040ef9196cc5c4d9726f4fb543ab"
+content-hash = "05c0ca12970b37c4d37c009522cade8b4d7f5871e665e1ca605c43f502301ed1"
